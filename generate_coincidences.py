@@ -41,8 +41,6 @@ for directory in directories:
     time_synch = time_dict['1kHz_CLK']
     
     for sx in sx_dict.keys():
-        if sx == 'S2_20' and directory=='012': breakpoint()
-        else: continue
         time_sx = time_dict[sx]
         energy_sx = erg_dict[sx]
 
