@@ -184,6 +184,55 @@ def analyse_synch(c_bins, c_bin_centers, plot=False):
     
     return stdev.mean(), np.std(stdev).mean()
     
+
+def plot_for_paper(detector):
+    # Energy/time bins
+    e_bins = np.arange(0, 4, 0.05)
+    e_bin_centers = e_bins[1:]-np.diff(e_bins)/2
+    c_bins = np.arange(-2, 2, 0.05)
+    c_bin_centers = c_bins[1:]-np.diff(c_bins)/2
+    
+    # Sort data into energy bins
+    coincidences, energies = sort_data(detector, e_bins)
+    
+    # Bin coincidences
+    c_binned = np.array(bin_coincidences(coincidences, c_bins))
+    
+    # Select bins to plot
+    selected_bins = [0.175, 0.275, 0.475]
+    linestyles = ['-', '--', '-.', ':']
+    arg = [np.argwhere(sb==e_bin_centers.round(8))[0][0] for sb in selected_bins]
+    
+    # Plot a few energy slices
+    fig_name = f'{detector} gaussians'
+    fig = plt.figure(fig_name)
+    colors = udfs.get_colors(len(selected_bins))
+    
+    for counts, e_bin, color, ls in zip(c_binned[arg], e_bin_centers[arg], colors, linestyles):
+        # Normalize
+        u_counts = np.sqrt(counts)
+        u_counts = u_counts/counts.max()
+        counts = counts/counts.max()
+
+        plt.plot(c_bin_centers, counts, color=color, marker='.', 
+                 linestyle='None')
+        plt.errorbar(c_bin_centers, counts, yerr=u_counts, 
+                     linestyle='None', color=color)
+        plt.xlabel('time (ns)')
+        plt.ylabel('counts (a.u.)')
+    
+        # Fit gaussian
+        popt, pcov = fit_gaussians([counts], c_bin_centers)
+        x_axis = np.linspace(-1, 1, 1000)
+        gaussian = gauss(x_axis, *popt[0])
+        plt.plot(x_axis, gaussian, color=color, label=f'{e_bin:.3f} MeV$_{{ee}}$', 
+                 linestyle=ls)
+    
+    plt.legend()
+    plt.xlim(-0.75, 0.75)    
+    plt.text(0.21, 0.85, '(a)', transform=fig.transFigure);
+
+
 def main(detector):
     # Energy/time bins
     e_bins = np.arange(0, 4, 0.05)
@@ -213,13 +262,16 @@ def main(detector):
     
     return parameters, u_parameters, e_bin_centers
 
+
 if __name__ == '__main__':
+    plot_for_paper('S2_01')
+    
     save_plots = False
     save_param = False
     
     # List of detector names
     detectors = list(dfs.get_dictionaries('merged').keys())
-    
+    detectors = ['S2_01']
     for detector in detectors:
         parameters, u_parameters, e_bin_centers = main(detector)
         
@@ -251,6 +303,7 @@ if __name__ == '__main__':
                      to_pickle)
         udfs.pickler('output/gaussians/fit_parameters/e_bin_centers.pickle', 
                       e_bin_centers)
+
 
     
     
