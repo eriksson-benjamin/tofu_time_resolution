@@ -77,8 +77,8 @@ def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
     '''
     Plots the energy sliced time resolution of the detectors with the fit.
     '''
-    plt.figure(detector)
-    plt.title(detector.replace('_', '-'), loc='left')
+    fig = plt.figure(detector)
+    # plt.title(detector.replace('_', '-'), loc='left')
     
     # Perform fit    
     popt, pcov = fit_resolution(res, u_res, e_bin_centers, detector)
@@ -117,7 +117,7 @@ def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
     handles, labels = plt.gca().get_legend_handles_labels()
     order = [0, 2, 1]
     plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])    
- 
+    plt.text(0.21, 0.85, '(b)', transform=fig.transFigure);
 
 def get_fit_range(detector):
     ranges = np.loadtxt('output/time_resolution/fit_range.txt', dtype='str')
