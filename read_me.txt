@@ -20,3 +20,4 @@ Takes the output from fit_gaussians.py and fits a function on the form sqrt(a^2 
 
 Notes
 -----
+The input data (~15 GB) is not uploaded to Github. Data is available upon request to benjamin.eriksson@physics.uu.se.
