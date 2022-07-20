@@ -218,7 +218,7 @@ def plot_for_paper(detector):
                  linestyle='None')
         plt.errorbar(c_bin_centers, counts, yerr=u_counts, 
                      linestyle='None', color=color)
-        plt.xlabel('time (ns)')
+        plt.xlabel('$\Delta t$ (ns)')
         plt.ylabel('counts (a.u.)')
     
         # Fit gaussian
@@ -265,7 +265,7 @@ def main(detector):
 
 if __name__ == '__main__':
     plot_for_paper('S2_01')
-    
+    sys.exit()
     save_plots = False
     save_param = False
     
