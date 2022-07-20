@@ -3,7 +3,7 @@ generate_data.py -> generate_coincidences.py -> fit_gaussians.py -> fit_time_res
 
 generate_data.py
 ----------------
-Analysis of the laser (and synch) raw pulse waveforms located in data/raw_data/ to produce time stamps and determine the corresponding energies of each pulse. Output is saved to data/decimated/10_30_ns/.
+Analysis of the laser (and synch) raw pulse waveforms located in data/raw_data/ to produce time stamps and determine the corresponding energies of each pulse. Input data is saved locally on PC as well as on hard-drive backup. Output is saved to data/decimated/10_30_ns/.
 
 generate_coincidences.py
 ------------------------
