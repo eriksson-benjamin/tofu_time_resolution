@@ -6,17 +6,18 @@ Created on Mon Jun  8 14:09:00 2020
 """
 
 '''
-Performs coincidence analysis for each laser intensity. Coincidences and 
+Performs coincidence analysis for each laser intensity. Coincidences and
 corresponding energies are saved to pickle file used in plot_coincidences.py
 '''
 
 import sys
 sys.path.insert(0, 'C:/python/definitions/')
 import useful_defs as udfs
-import definitions_heimdall as dfs
+sys.path.insert(0, 'C:/python/TOFu/functions/')
+import tofu_functions as dfs
 import numpy as np
 
-directories = np.array(['001', '002', '003', '004', '005', 
+directories = np.array(['001', '002', '003', '004', '005',
                         '006', '007', '008', '009', '010',
                         '012', '014', '016', '018', '020',
                         '025', '030', '035', '040', '045',
@@ -36,53 +37,43 @@ for directory in directories:
     P = udfs.unpickle(f'data/decimated/10_30_ns/{directory}.pickle')
     erg_dict = P['energy']
     time_dict = P['time']
-    
+
     # Synch times
     time_synch = time_dict['1kHz_CLK']
-    
+
     for sx in sx_dict.keys():
         time_sx = time_dict[sx]
         energy_sx = erg_dict[sx]
 
         print(f'{sx}')
-        
+
         # Find coincidences
-        coincidences, [sx_args, synch_args] = dfs.sTOF4(time_sx, time_synch, 
-                                                        t_back=200, 
-                                                        t_forward=200, 
+        coincidences, [sx_args, synch_args] = dfs.sTOF4(time_sx, time_synch,
+                                                        t_back=200,
+                                                        t_forward=200,
                                                         return_indices=True)
         # Move coincidences to around zero
         coincidences -= np.median(coincidences)
-        
+
         # Store in dictionaries
         coincidence_dict[sx] = np.append(coincidence_dict[sx], coincidences)
         erg_sx_dict[sx] = np.append(erg_sx_dict[sx], energy_sx[sx_args])
-    
+
     # Synch vs. synch coincidences are saved for each laser intensity
     print('ABS_REF')
-    coincidences, [sx_args, synch_args] = dfs.sTOF4(time_dict['ABS_REF'], 
-                                                    time_synch, 
-                                                    t_back=200, 
-                                                    t_forward=200, 
-                                                    return_indices=True)        
+    coincidences, [sx_args, synch_args] = dfs.sTOF4(time_dict['ABS_REF'],
+                                                    time_synch,
+                                                    t_back=200,
+                                                    t_forward=200,
+                                                    return_indices=True)
     coincidences -= np.median(coincidences)
-    udfs.pickler(f'data/coincidences/abs_ref/{directory}_abs_ref.pickle', coincidences)
+
+    # Save to file (move these to data/coincidences/abs_ref/)
+    udfs.pickler(f'{directory}_abs_ref.pickle', coincidences)
     print('\n')
-    
-# Save to file
+
+# Save to file (move these to data/coincidences/)
 for sx in sx_dict.keys():
-    to_pickle = {'coincidences':coincidence_dict[sx], 
-                'energy':erg_sx_dict[sx]}
-    udfs.pickler(f'data/coincidences/{sx}.pickle', to_pickle, check=False)
-
-
-
-
-
-
-
-
-
-
-
-
+    to_pickle = {'coincidences': coincidence_dict[sx],
+                 'energy': erg_sx_dict[sx]}
+    udfs.pickler(f'{sx}.pickle', to_pickle)
