@@ -11,7 +11,7 @@ corresponding energies are saved to pickle file used in plot_coincidences.py
 '''
 
 import sys
-sys.path.insert(0, 'C:/python/definitions/')
+sys.path.insert(0, 'C:/python/useful_definitions/')
 import useful_defs as udfs
 sys.path.insert(0, 'C:/python/TOFu/functions/')
 import tofu_functions as dfs
