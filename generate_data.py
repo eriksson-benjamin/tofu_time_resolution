@@ -8,6 +8,7 @@ Created on Fri Jun  5 09:57:44 2020
 import sys
 sys.path.insert(0, 'C:/python/TOFu/functions/')
 import tofu_functions as dfs
+sys.path.insert(0, 'C:/python/useful_definitions/')
 import useful_defs as udfs
 import numpy as np
 import matplotlib.pyplot as plt
