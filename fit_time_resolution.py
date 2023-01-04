@@ -97,7 +97,7 @@ def conf_level(n_std, popt, pcov, x_axis):
     return lower_bound, upper_bound
 
 
-def calculate_resolution(detector):
+def calculate_resolution(detector, directory):
     """
     Calculate resolution from output files.
 
@@ -106,7 +106,7 @@ def calculate_resolution(detector):
     The contribution from synch vs. synch is removed here.
     """
     # Import fit parameters
-    path = 'output/gaussians/fit_parameters'
+    path = f'output/gaussians/fit_parameters/{directory}/'
     p = udfs.unpickle(f'{path}/{detector}_gauss.pickle')
     s = udfs.unpickle(f'{path}/ABS_REF.pickle')
 
@@ -122,22 +122,22 @@ def calculate_resolution(detector):
     det_res = np.sqrt(res**2 - synch**2)
 
     # Calculate propagated uncertainty
-    u_det_res = np.sqrt(1 / (res**2 - synch**2) * ((res * u_res)**2
-                                                   + (synch * u_synch)**2))
+    u_det_res = np.sqrt(1 / (res**2 - synch**2) * ((res * u_res)**2 +
+                                                   (synch * u_synch)**2))
 
     return det_res, u_det_res
 
 
-def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
+def plot_resolution(res, u_res, e_bin_centers, detector, directory, all_data=False):
     """Plot the energy sliced time resolution of the detectors with the fit."""
     fig = plt.figure(detector)
     ax = plt.gca()
     # Perform fit
-    popt, pcov = fit_resolution(res, u_res, e_bin_centers, detector)
+    popt, pcov = fit_resolution(res, u_res, e_bin_centers, detector, directory)
 
     # Only plot the fitting range?
     if not all_data:
-        f_bool = select_fit_range(detector, e_bin_centers)
+        f_bool = select_fit_range(detector, e_bin_centers, directory)
         res = res[f_bool]
         u_res = u_res[f_bool]
         e_bin_centers = e_bin_centers[f_bool]
@@ -169,21 +169,22 @@ def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
     order = [0, 2, 1]
     ax.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
     ax.text(0.21, 0.85, '(b)', transform=fig.transFigure)
-    ax.set_xlim(-0.3, 3)
-    ax.set_ylim(0.2, 0.8)
+    ax.set_xlim(0, 2)
+    ax.set_ylim(0, 0.5)
     ax.set_title(detector, loc='left')
 
 
-def get_fit_range(detector):
+def get_fit_range(detector, directory):
     """Get fit range from file."""
-    ranges = np.loadtxt('output/time_resolution/fit_range.txt', dtype='str')
+    f_name = f'output/time_resolution/fit_parameters/{directory}/fit_range.txt'
+    ranges = np.loadtxt(f_name, dtype='str')
     r_d = {r[0]: [float(r[1]), float(r[2])] for r in ranges}
     return r_d[detector]
 
 
-def select_fit_range(detector, e_bin_centers):
+def select_fit_range(detector, e_bin_centers, directory):
     """Return bins corresponding to fit range."""
-    r = get_fit_range(detector)
+    r = get_fit_range(detector, directory)
     e_bin_centers = np.round(e_bin_centers, 8)
     fit_bool = ((e_bin_centers >= r[0]) & (e_bin_centers <= r[1]))
     return fit_bool
@@ -194,10 +195,10 @@ def fit_function(x, a, b, c):
     return np.sqrt(a**2 + b**2 / x + c**2 / x**2)
 
 
-def fit_resolution(res, u_res, e_bin_centers, detector):
+def fit_resolution(res, u_res, e_bin_centers, detector, directory):
     """Fit curve to time resolution."""
     # Select fit range
-    r = get_fit_range(detector)
+    r = get_fit_range(detector, directory)
     e_bin_centers = np.round(e_bin_centers, 8)
     fit_bool = ((e_bin_centers >= r[0]) & (e_bin_centers <= r[1]))
     y = res[fit_bool]
@@ -214,11 +215,14 @@ def fit_resolution(res, u_res, e_bin_centers, detector):
 
 
 if __name__ == '__main__':
+    # Set directory to read Gaussian fit parameters from
+    directory = '20-11-2020-energy-calibration'
+
     # Get detector names
     detectors = dfs.get_dictionaries('merged')
 
     # Import the energy bins
-    p_name = 'output/gaussians/fit_parameters/e_bin_centers.pickle'
+    p_name = f'output/gaussians/fit_parameters/{directory}/e_bin_centers.pickle'
     e_bin_centers = udfs.unpickle(p_name)
 
     # Create parameter file (move this to output/time_resolution/)
@@ -227,9 +231,11 @@ if __name__ == '__main__':
 
     # Calculate resolution, perform fit, and plot
     for detector in detectors:
-        res, u_res = calculate_resolution(detector)
-        plot_resolution(res, u_res, e_bin_centers, detector, all_data=False)
-        popt, pcov = fit_resolution(res, u_res, e_bin_centers, detector)
+        res, u_res = calculate_resolution(detector, directory)
+        plot_resolution(res, u_res, e_bin_centers, detector,
+                        directory, all_data=False)
+        popt, pcov = fit_resolution(res, u_res, e_bin_centers,
+                                    detector, directory)
         u_popt = np.sqrt(np.diag(pcov))
 
         # Write fit parameters to the file

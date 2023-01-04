@@ -17,24 +17,27 @@ sys.path.insert(0, 'C:/python/TOFu/functions/')
 import tofu_functions as dfs
 import numpy as np
 
-directories = np.array(['001', '002', '003', '004', '005',
-                        '006', '007', '008', '009', '010',
-                        '012', '014', '016', '018', '020',
-                        '025', '030', '035', '040', '045',
-                        '050', '055', '060', '065', '070',
-                        '075', '080', '085', '090', '095',
-                        '100'])
+laser_settings = np.array(['001', '002', '003', '004', '005',
+                           '006', '007', '008', '009', '010',
+                           '012', '014', '016', '018', '020',
+                           '025', '030', '035', '040', '045',
+                           '050', '055', '060', '065', '070',
+                           '075', '080', '085', '090', '095',
+                           '100'])
+
+# Directory to read "decimated" data from
+directory = '26-11-2022-energy-calibration'
 
 # Dictionaries
 coincidence_dict = dfs.get_dictionaries('merged')
 erg_sx_dict = dfs.get_dictionaries('merged')
 sx_dict = dfs.get_dictionaries('merged')
 
-for directory in directories:
-    print(f'---- {directory} ----')
+for ls in laser_settings:
+    print(f'---- {ls} ----')
 
     # Get times/energies
-    P = udfs.unpickle(f'data/decimated/10_30_ns/{directory}.pickle')
+    P = udfs.unpickle(f'data/decimated/{directory}/{ls}.pickle')
     erg_dict = P['energy']
     time_dict = P['time']
 
@@ -68,11 +71,11 @@ for directory in directories:
                                                     return_indices=True)
     coincidences -= np.median(coincidences)
 
-    # Save to file (move these to data/coincidences/abs_ref/)
-    udfs.pickler(f'{directory}_abs_ref.pickle', coincidences)
+    # Save to file (move these to data/coincidences/{directory}/abs_ref/)
+    udfs.pickler(f'{ls}_abs_ref.pickle', coincidences)
     print('\n')
 
-# Save to file (move these to data/coincidences/)
+# Save to file (move these to data/coincidences/{directory}/)
 for sx in sx_dict.keys():
     to_pickle = {'coincidences': coincidence_dict[sx],
                  'energy': erg_sx_dict[sx]}
