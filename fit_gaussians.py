@@ -21,11 +21,11 @@ import tofu_functions as dfs
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
-import oss
+import os
 udfs.set_nes_plot_style()
 
 
-def sort_data(sx, energy_bins):
+def sort_data(sx, energy_bins, directory):
     """
     Return the sorted conicidences/energies for detector sx using energy bins.
 
@@ -34,7 +34,7 @@ def sort_data(sx, energy_bins):
     The binning is such that energy_bins[0] < c_sort[1] < energy_bins[1].
     """
     # Import coincidences
-    p = udfs.unpickle(f'data/coincidences/{sx}.pickle')
+    p = udfs.unpickle(f'data/coincidences/{directory}/{sx}.pickle')
     all_coincidences = p['coincidences']
     all_energies = p['energy']
 
@@ -114,7 +114,7 @@ def plot_2d(coincidences, energies, c_bins, e_bins, title=''):
 
 def gauss(x, a, b, c):
     """Return Gaussian."""
-    return a * np.exp(-((x - b) / (0.5 * c))**2)
+    return a * np.exp(-0.5 * ((x - b) / c)**2)
 
 
 def fit_gaussians(coincidences, c_bin_centers):
@@ -155,15 +155,16 @@ def plot_gaussians(parameters, x_axis, e_bin_centers, detector=''):
         plt.plot(x_axis, gaussian, 'k')
 
 
-def analyse_synch(c_bins, c_bin_centers, plot=False):
+def analyse_synch(c_bins, c_bin_centers, directory, plot=False):
     """
     Estimate the width of the synch vs. synch distribution.
 
     Note
     ----
-    Energy slices are not available here
+    Energy slices are not available here since the synch signal has a square
+    waveform with a constant amplitude.
     """
-    path = 'data/coincidences/abs_ref'
+    path = f'data/coincidences/{directory}/abs_ref'
     files = os.listdir(path)
 
     stdev = np.array([])
@@ -192,7 +193,7 @@ def analyse_synch(c_bins, c_bin_centers, plot=False):
     return stdev.mean(), np.std(stdev).mean()
 
 
-def plot_for_paper(detector):
+def plot_for_paper(detector, directory):
     """Create plot for TOFu technical paper."""
     # Energy/time bins
     e_bins = np.arange(0, 4, 0.05)
@@ -201,13 +202,14 @@ def plot_for_paper(detector):
     c_bin_centers = c_bins[1:] - np.diff(c_bins) / 2
 
     # Sort data into energy bins
-    coincidences, energies = sort_data(detector, e_bins)
+    coincidences, energies = sort_data(detector, e_bins, directory)
 
     # Bin coincidences
     c_binned = np.array(bin_coincidences(coincidences, c_bins))
 
     # Select bins to plot
-    selected_bins = [0.175, 0.275, 0.475]
+    selected_bins = [0.275, 0.475, 0.675]
+
     linestyles = ['-', '--', '-.', ':']
     arg = [np.argwhere(sb == e_bin_centers.round(8))[0][0]
            for sb in selected_bins]
@@ -237,12 +239,26 @@ def plot_for_paper(detector):
         plt.plot(x_axis, gaussian, color=color, linestyle=ls,
                  label=f'{e_bin:.3f} MeV$_{{ee}}$')
 
+    # Plot synch signal distribution
+    s_name = f'data/coincidences/{directory}/abs_ref/001_abs_ref.pickle'
+    synch = udfs.unpickle(s_name)
+
+    # Clear outliers
+    mask = ((synch > -0.2) & (synch < 0.2))
+    synch = synch[mask]
+
+    # Divide by sqrt(2) to find sigma for single synch channel
+    synch_sigma = np.std(synch) / np.sqrt(2)
+
+    plt.plot([-synch_sigma, synch_sigma], [0.3, 0.3], 'k', marker='|',
+             linestyle='--')
+    plt.text(-0.08, 0.34, f'$\pm${1000 * synch_sigma:.0f} ps')
     plt.legend()
     plt.xlim(-0.75, 0.75)
     plt.text(0.21, 0.85, '(a)', transform=fig.transFigure)
 
 
-def main(detector):
+def main(detector, directory):
     """Fit Gaussians to coincidences and plot."""
     # Energy/time bins
     e_bins = np.arange(0, 4, 0.05)
@@ -251,7 +267,7 @@ def main(detector):
     c_bin_centers = c_bins[1:] - np.diff(c_bins) / 2
 
     # Sort data into energy bins
-    coincidences, energies = sort_data(detector, e_bins)
+    coincidences, energies = sort_data(detector, e_bins, directory)
 
     # Plot 2D histogram
     plot_2d(coincidences, energies, c_bins, e_bins, detector.replace('_', '-'))
@@ -274,28 +290,31 @@ def main(detector):
 
 
 if __name__ == '__main__':
-    plot_for_paper('S2_01')
-    sys.exit()
+    # Settings
     save_plots = False
-    save_param = False
+    save_param = True
+
+    # Directory to read coincidences from
+    directory = '26-11-2022-energy-calibration'
+
+    plot_for_paper('S2_01', directory)
+    sys.exit()
 
     # List of detector names
     detectors = list(dfs.get_dictionaries('merged').keys())
-    detectors = ['S2_01']
+    # detectors = ['S2_01']
     for detector in detectors:
-        parameters, u_parameters, e_bin_centers = main(detector)
+        parameters, u_parameters, e_bin_centers = main(detector, directory)
 
-        # Save plots
+        # Save plots (move these to output/gaussians/figures/)
         if save_plots:
-            udfs.multipage(f'output/gaussians/figures/{detector}_gauss.pdf',
-                           tight_layout=True)
+            udfs.multipage(f'{detector}_gauss.pdf', tight_layout=True)
 
-        # Save parameters
+        # Save parameters (move these to output/gaussians/fit_parameters/)
         if save_param:
             to_pickle = {'parameters': parameters,
                          'u_parameters': u_parameters}
-            p_name = f'output/gaussians/fit_parameters/{detector}_gauss.pickle'
-            udfs.pickler(p_name, to_pickle)
+            udfs.pickler(f'{detector}_gauss.pickle', to_pickle)
 
         # Close figures
         plt.close('all')
@@ -304,12 +323,11 @@ if __name__ == '__main__':
     # Analyse synch vs. synch coincidences
     c_bins = np.arange(-0.2, 0.2, 0.005)
     c_bin_centers = c_bins[1:] - np.diff(c_bins) / 2
-    stdev, u_stdev = analyse_synch(c_bins, c_bin_centers)
+    stdev, u_stdev = analyse_synch(c_bins, c_bin_centers,
+                                   directory, plot=False)
 
-    # Save parameters and bins
+    # Save parameters and bins (move these to output/gaussians/fit_parameters/)
     if save_param:
         to_pickle = {'parameters': stdev, 'u_parameters': u_stdev}
-        udfs.pickler('output/gaussians/fit_parameters/ABS_REF.pickle',
-                     to_pickle)
-        udfs.pickler('output/gaussians/fit_parameters/e_bin_centers.pickle',
-                     e_bin_centers)
+        udfs.pickler('ABS_REF.pickle', to_pickle)
+        udfs.pickler('e_bin_centers.pickle', e_bin_centers)
