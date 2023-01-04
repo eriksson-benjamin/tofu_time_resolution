@@ -43,14 +43,56 @@ def get_outliers(input_file):
     return outliers
 
 
-def conf_level(n_std, popt, pcov, x_axis):
-    """Calculate confidence bands."""
-    # Prepare confidence level curves
-    popt_up = popt + n_std * np.sqrt(np.diag(pcov))
-    popt_dw = popt - n_std * np.sqrt(np.diag(pcov))
+def draw_samples(popt, pcov, n):
+    """Draw n random samples from posterior distribution of fit params."""
+    stdev = np.sqrt(np.diag(pcov))
+    samples = []
+    for param, std in zip(popt, stdev):
+        p = np.random.normal(param, std, n)
+        samples.append(p)
 
-    lower_bound = fit_function(x_axis, *popt_dw)
-    upper_bound = fit_function(x_axis, *popt_up)
+    return np.array(samples).T
+
+
+def conf_level(n_std, popt, pcov, x_axis):
+    """
+    Calculate confidence bands.
+
+    Note
+    ----
+    Multiple confidence bands are returned if n_std is an array of values.
+    """
+    # Set very small values to zero
+    mask = popt < 1E-5
+
+    # Copy parameters/covariance matrix
+    popt_c = np.copy(popt)
+    pcov_c = np.copy(pcov)
+    if np.any(mask):
+        print('Parameter value smaller than 1E-5 detected.')
+        print(f'popt = {popt}')
+        print(f'pcov = \n{pcov}')
+        print('Setting value to zero for confidence bands.\n')
+        popt_c[mask] = 0
+        pcov_c[np.diagflat(mask)] = 0
+
+    # Draw n random samples from posterior
+    samples = draw_samples(popt_c, pcov_c, 2000)
+    if np.any(samples < 0):
+        print('Warning: negative parameter samples detected.')
+
+    # Run through fit function
+    p0 = np.expand_dims(samples[:, 0], axis=1)
+    p1 = np.expand_dims(samples[:, 1], axis=1)
+    p2 = np.expand_dims(samples[:, 2], axis=1)
+
+    # Generate curves
+    curves = fit_function(x_axis, p0, p1, p2)
+    best_fit = fit_function(x_axis, *popt)
+
+    n_std = np.expand_dims(n_std, axis=1)
+    lower_bound = best_fit - n_std * np.std(curves, axis=0)
+    upper_bound = best_fit + n_std * np.std(curves, axis=0)
 
     return lower_bound, upper_bound
 
@@ -89,7 +131,7 @@ def calculate_resolution(detector):
 def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
     """Plot the energy sliced time resolution of the detectors with the fit."""
     fig = plt.figure(detector)
-
+    ax = plt.gca()
     # Perform fit
     popt, pcov = fit_resolution(res, u_res, e_bin_centers, detector)
 
@@ -102,34 +144,34 @@ def plot_resolution(res, u_res, e_bin_centers, detector, all_data=False):
         plt.ylim(0.8 * res.min(), 1.1 * res.max())
 
     # Plot data
-    plt.plot(e_bin_centers, res, 'k.')
-    plt.errorbar(e_bin_centers, res, yerr=u_res, linestyle='None', color='k')
+    ax.plot(e_bin_centers, res, 'k.', markersize=1.5)
+    ax.errorbar(e_bin_centers, res, yerr=u_res, linestyle='None', color='k')
 
-    plt.xlabel('light yield (MeV$_{ee}$)')
-    plt.ylabel(r'$\sigma_{\Delta t}$ (ns)')
+    ax.set_xlabel('light yield (MeV$_{ee}$)')
+    ax.set_ylabel(r'$\sigma_{\Delta t}$ (ns)')
 
     # Plot fit
     x_axis = np.linspace(0.05, 4, 1000)
     y_axis = fit_function(x_axis, *popt)
-    plt.figure(detector)
-    plt.plot(x_axis, y_axis, 'k', label='best fit curve')
+    ax.plot(x_axis, y_axis, 'k', label='best fit curve')
 
     # Calculate confidence levels
-    l1, u1 = conf_level(1, popt, pcov, x_axis)
-    l2, u2 = conf_level(2, popt, pcov, x_axis)
+    lower_bounds, upper_bounds = conf_level([1, 2], popt, pcov, x_axis)
 
-    plt.fill_between(x_axis, u2, l2, alpha=0.6, color='lightskyblue',
-                     label='2$\sigma$ interval')
-    plt.fill_between(x_axis, u1, l1, alpha=0.8, color='C0',
-                     label='1$\sigma$ interval')
+    # Plot 1/2 sigma bands
+    ax.fill_between(x_axis, upper_bounds[1], lower_bounds[1], alpha=0.6,
+                    color='lightskyblue', label='2$\sigma$ interval')
+    ax.fill_between(x_axis, upper_bounds[0], lower_bounds[0], alpha=0.8,
+                    color='C0', label='1$\sigma$ interval')
 
     # Change order of legend
-    handles, labels = plt.gca().get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
     order = [0, 2, 1]
-    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-    plt.text(0.21, 0.85, '(b)', transform=fig.transFigure)
-    plt.xlim(-0.3, 3)
-    plt.ylim(0.2, 0.8)
+    ax.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+    ax.text(0.21, 0.85, '(b)', transform=fig.transFigure)
+    ax.set_xlim(-0.3, 3)
+    ax.set_ylim(0.2, 0.8)
+    ax.set_title(detector, loc='left')
 
 
 def get_fit_range(detector):
