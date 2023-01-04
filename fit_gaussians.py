@@ -298,11 +298,9 @@ if __name__ == '__main__':
     directory = '26-11-2022-energy-calibration'
 
     plot_for_paper('S2_01', directory)
-    sys.exit()
 
     # List of detector names
     detectors = list(dfs.get_dictionaries('merged').keys())
-    # detectors = ['S2_01']
     for detector in detectors:
         parameters, u_parameters, e_bin_centers = main(detector, directory)
 
