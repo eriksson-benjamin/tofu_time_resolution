@@ -169,9 +169,9 @@ def plot_resolution(res, u_res, e_bin_centers, detector, directory, all_data=Fal
     order = [0, 2, 1]
     ax.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
     ax.text(0.21, 0.85, '(b)', transform=fig.transFigure)
-    ax.set_xlim(0, 2)
-    ax.set_ylim(0, 0.5)
-    ax.set_title(detector, loc='left')
+    ax.set_xlim(-0.15, 1.5)
+    ax.set_ylim(0.05, 0.4)
+    # ax.set_title(detector, loc='left')
 
 
 def get_fit_range(detector, directory):
