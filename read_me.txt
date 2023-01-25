@@ -20,7 +20,7 @@ Fits Gaussians to the coincidence spectra found in generate_coincidences.py. Coi
 
 4. fit_time_resolution.py
 -------------------------
-Takes the output from fit_gaussians.py and fits a function on the form sqrt(a^2 + b^2/x + c^2/x^2) to the widths of the Gaussians as a function of energy. Calculates the 1- and 2-sigma confidence levels of the fit. Fit parameters (a, b, and c) are saved to output/time_resolution/fit_parameters.txt.
+Takes the output from fit_gaussians.py and fits a function on the form sqrt(a^2 + b^2/x + c^2/x^2) to the widths of the Gaussians as a function of energy. Calculates the 1- and 2-sigma confidence levels of the fit. Fit parameters (a^2, b^2, and c^2) are saved to output/time_resolution/fit_parameters.txt. Note that a^2, b^2, and c^2 are saved, not a, b, and c.
 
 
 Notes
