@@ -122,8 +122,8 @@ def calculate_resolution(detector, directory):
     det_res = np.sqrt(res**2 - synch**2)
 
     # Calculate propagated uncertainty
-    u_det_res = np.sqrt(1 / (res**2 - synch**2) * ((res * u_res)**2
-                                                   + (synch * u_synch)**2))
+    u_det_res = np.sqrt(1 / (res**2 - synch**2) * ((res * u_res)**2 +
+                                                   (synch * u_synch)**2))
 
     return det_res, u_det_res
 
@@ -227,14 +227,13 @@ if __name__ == '__main__':
 
     # Create parameter file (move this to output/time_resolution/)
     with open('fit_parameters.txt', 'w') as handle:
-        handle.write(
-            '# Det  a^2    b^2    c^2    u_a^2  u_b^2  u_c^2\n')
+        handle.write('# Det  a      b      c      u_a    u_b    u_c\n')
 
     # Calculate resolution, perform fit, and plot
     for detector in detectors:
         res, u_res = calculate_resolution(detector, directory)
         plot_resolution(res, u_res, e_bin_centers, detector,
-                        directory, all_data=True)
+                        directory, all_data=False)
         popt, pcov = fit_resolution(res, u_res, e_bin_centers,
                                     detector, directory)
         u_popt = np.sqrt(np.diag(pcov))
